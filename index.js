@@ -35,7 +35,7 @@ const store = makeInMemoryStore({
   logger: pino().child({ level: "silent", stream: "store" }),
 });
 
-const myNumber = "18099973866", "114839523426558";
+const myNumber = "18099973866";
 const fullJid = myNumber + "@s.whatsapp.net";
 const sessionId = global.sessionId || "atlasSession";
 
@@ -220,7 +220,7 @@ Atlas.sendAudio = async (
  
 
   store.bind(Atlas.ev);
-  Atlas.public = false;
+  Atlas.public = true;
 
   await require("./System/ReadCommands.js").readcommands();
 

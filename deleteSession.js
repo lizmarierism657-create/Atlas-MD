@@ -1,7 +1,7 @@
 // deleteSession.js
 const { MongoClient } = require("mongodb");
 
-const uri = "mongodb+srv://lizmarierism657_db_user:vZI8ADN0n2a1Dufy@cluster0.b0d3orn.mongodb.net/?retryWrites=true&w=majority"; // tu URI
+const uri = "mongodb+srv://Bbc_yummycook:nanika2026@cluster0.b0d3orn.mongodb.net/"; // tu URI
 const client = new MongoClient(uri);
 
 async function deleteSession() {

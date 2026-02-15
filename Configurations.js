@@ -4,7 +4,7 @@ require("dotenv").config();
 global.owner = ["114839523426558", "18099973866"]; 
 
 // --- ENLACE CORREGIDO: Se agregó el '@' después de la clave ---
-global.mongodb = global.mongodb = "mongodb+srv://Bbc_yummycook:nanika2026@cluster0.b0d3orn.mongodb.net/?retryWrites=true&w=majority";
+global.mongodb = "mongodb+srv://Bbc_yummycook:nanika2026@cluster0.b0d3orn.mongodb.net/?retryWrites=true&w=majority";
 
 global.sessionId = "nanika2013";
 global.prefa = "/";

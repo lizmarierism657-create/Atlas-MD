@@ -97,6 +97,17 @@ module.exports = async (Atlas, m, commands, chatUpdate) => {
   console.log("CLEAN SENDER:", m.sender.split('@')[0]);
   console.log("-----------------------------------------");
 
+ 
+// --- CÓDIGO DE DIAGNÓSTICO MAESTRO ---
+console.log("-----------------------------------------");
+console.log("🚨 NUEVO MENSAJE DETECTADO EN GRUPO");
+console.log("SENDER JID:", m.sender);
+console.log("CHAT ID:", m.chat);
+console.log("¿ES DUEÑA (OWNER)?:", global.owner.includes(m.sender.split('@')[0]));
+console.log("¿ESTÁ EN MODO PÚBLICO?:", Atlas.public);
+console.log("TIPO DE MENSAJE:", m.mtype);
+console.log("TEXTO:", m.body);
+console.log("-----------------------------------------");
 
     // --------- LOGS PARA GRUPO Y PRIVADO -----------
     if (m.message && isGroup) {
@@ -130,7 +141,7 @@ module.exports = async (Atlas, m, commands, chatUpdate) => {
        // --------- EXECUTE COMMAND ---------
     if (cmd) {
       // 🛡️ Filtro para que solo Admins y Tú usen el bot en grupos
-      if (isGroup && !isAdmin && !isCreator) return;
+      //if (isGroup && !isAdmin && !isCreator) return;
 
       cmd.start(Atlas, m, {
         name: "Atlas",
