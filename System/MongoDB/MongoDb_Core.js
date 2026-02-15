@@ -40,7 +40,7 @@ async function unbanUser(userId) {
   await userData.findOneAndUpdate({ id: userId }, { $set: { ban: false } });
 }
 
-// ADD MOD
+ //ADD MOD
 async function addMod(userId) {
   const ownerlist = global.owner;
   if (ownerlist.includes(userId)) {
@@ -70,7 +70,7 @@ async function checkMod(userId) {
   return user.addedMods;
 }
 
-// DEL MOD
+  //DEL MOD
 async function delMod(userId) {
   const ownerlist = global.owner;
   if (ownerlist.includes(userId)) {
