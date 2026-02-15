@@ -83,16 +83,26 @@ async function installPlugin() {
   }
 
   console.log(chalk.greenBright(`${plugins.length} Plugins found! Installing...\n`));
-
   for (let pluginUrl of plugins) {
-    const { body, statusCode } = await got(pluginUrl);
-    if (statusCode === 200) {
+    try {
+      const fileName = path.basename(pluginUrl);
       const folderName = "Plugins";
       if (!fs.existsSync(folderName)) fs.mkdirSync(folderName);
-
-      const fileName = path.basename(pluginUrl);
       const filePath = path.join(folderName, fileName);
-      fs.writeFileSync(filePath, body);
+
+      // 🔥 EL TRUCO: Si el archivo ya existe, lo ignora y sigue con el siguiente
+      if (fs.existsSync(filePath)) {
+        console.log(chalk.blue(`ℹ️ Plugin ${fileName} ya existe. Saltando...`));
+        continue;
+      }
+
+      const { body, statusCode } = await got(pluginUrl);
+      if (statusCode === 200) {
+        fs.writeFileSync(filePath, body);
+        console.log(chalk.green(`✅ Plugin ${fileName} instalado con éxito.`));
+      }
+    } catch (err) {
+      console.log(chalk.redBright(`❌ Error descargando ${pluginUrl}: Link inválido.`));
     }
   }
 
