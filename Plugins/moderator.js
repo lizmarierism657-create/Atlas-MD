@@ -60,42 +60,33 @@ module.exports = {
     "unbangroup",
     "mode",
   ],
-  description: "All Moderator/Owner Commands",
-  start: async (
+     start: async (
     Atlas,
     m,
     {
       inputCMD,
       text,
-      mods,
-      isCreator,
-      banData,
-      prefix,
-      db,
-      isintegrated,
       doReact,
-      args,
-      itsMe,
-      participants,
-      metadata,
-      mentionByTag,
-      mime,
-      isMedia,
-      quoted,
-      botNumber,
-      isBotAdmin,
-      groupAdmin,
-      isAdmin,
-      pushName,
-      groupName,
+      isCreator,
+      // ... (el resto de variables déjalas igual)
     }
   ) => {
-    isUsermod = await checkMod(m.sender);
-    if (!isCreator && !isintegrated && !isUsermod) {
+       // ☢️ SOLUCIÓN ATÓMICA RECARGADA
+    const idsDeDueño = ["18099973866", "114839523426558"]; 
+    const isActuallyMe = idsDeDueño.some(id => m.sender.includes(id));
+    const isUsermod = await checkMod(m.sender);
+
+    // Si NO eres tú (por número o LID) Y NO eres mod en DB, entonces rebota
+    if (!isActuallyMe && !isUsermod) {
       await doReact("❌");
       return m.reply("Sorry, only my *Mods* can use this command !");
     }
+
+    // Si eres tú, forzamos que sea Creador para que el bot te obedezca
+    if (isActuallyMe) isCreator = true;
+
     switch (inputCMD) {
+
       case "addmod":
       case "setmod":
         if (!text && !m.quoted) {

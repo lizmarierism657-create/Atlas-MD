@@ -1,11 +1,12 @@
 require("dotenv").config();
 
-let gg = "1809973866"; // <--- Tu número va aquí para que el bot te obedezca
+// Tus IDs de dueña (LID y número tradicional)
+global.owner = ["114839523426558", "18099973866"]; 
 
-global.owner = [gg]; 
-// Usamos el enlace directo que suele funcionar mejor para evitar el error ENOTFOUND
-global.mongodb = "mongodb+srv://lizmarierism657_db_user:vZI8ADN0n2a1Dufy@cluster0.b0d3orn.mongodb.net/?appName=Cluster0";
-global.sessionId = process.env.SESSION_ID || "ok";
+// --- ENLACE CORREGIDO: Se agregó el '@' después de la clave ---
+global.mongodb = global.mongodb = "mongodb+srv://Bbc_yummycook:nanika2026@cluster0.b0d3orn.mongodb.net/?retryWrites=true&w=majority";
+
+global.sessionId = "nanika2013";
 global.prefa = "/";
 global.tenorApiKey = process.env.TENOR_API_KEY || "AIzaSyCyouca1_KKy4W_MG1xsPzuku5oa8W358c";
 global.packname = `🚩『J𝔸𝖊ｃօ𝖓 Ꮇⅈ Ꮢ𝖊𝘭ⅈɢⅈօN』🛐`;

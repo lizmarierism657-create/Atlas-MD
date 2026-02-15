@@ -1,4 +1,4 @@
-const { checkWelcome } = require('./MongoDB/MongoDb_Core');
+const { checkWelcome } = require("./MongoDB/MongoDb_Core.js");
 
 module.exports = async (Atlas, anu) => {
   try {
@@ -6,37 +6,30 @@ module.exports = async (Atlas, anu) => {
     let participants = anu.participants;
 
     for (let num of participants) {
-      let WAuserName = num;
-
       if (anu.action == "add") {
         const WELstatus = await checkWelcome(anu.id);
-        console.log(`\n+${WAuserName.split("@")[0]} Joined in: ${metadata.subject}\n`);
+        console.log(`\n+${num.split("@")[0]} Entró a: ${metadata.subject}\n`);
 
         let Atlastext = `˙ ˙ ˙ ˙ ˙ ˙ ˙ ˙ ˙ ˙ ˙ ˙ ˙ ˙ ˙ ˙ ˙ ˙ ˙ ˙ ˙ ˙ ˙ ˙ ˙ ˙
-
   🚩 『 J𝔸𝖊𝖈𝖔𝖓  Ꮇⅈ  Ꮢ𝖊𝖑ⅈɢⅈ𝖔𝖓 』 🛐
-
 ˙ ˙ ˙ ˙ ˙ ˙ ˙ ˙ ˙ ˙ ˙ ˙ ˙ ˙ ˙ ˙ ˙ ˙ ˙ ˙ ˙ ˙ ˙ ˙ ˙ ˙
 
 ✧ 🕊️ ✧ *𝑩𝑰𝑬𝑵𝑽𝑬𝑵𝑰𝑫@ 𝑨 𝑳𝑨 𝑹𝑬𝑳𝑰𝑮𝑰𝑶́𝑵* ✧ 🕊️ ✧
 
-❝ @${WAuserName.split("@")[0]}, *has sido recibido en las tierras de este gran paraíso. Deseamos que este espacio sea tu lugar seguro, donde el arte de los Manhwas nos una y puedas forjar amistades tan profundas como las historias que compartimos.*
+❝ @${num.split("@")[0]}, *has sido recibido en las tierras de este gran paraíso. Deseamos que este espacio sea tu lugar seguro, donde el arte de los Manhwas nos una y puedas forjar amistades tan profundas como las historias que compartimos.*
 
 📜 𝑶 𝑹 𝑫 𝑬 𝑵  𝑫 𝑬 𝑳  𝕾 𝕬 𝕹 𝕮 𝕿 𝖀 𝕬 𝕽 𝕴 𝕺
 ━━━━━━━━━━━━━━━━━━━━
-🌸 *𝑬𝒍 𝑴𝒖𝒓𝒐* ∷ Los enlaces externos están prohibidos (destierro inmediato).
-🌸 *𝑬𝒍 𝑹𝒆𝒔𝒑𝒆𝒕𝒐* ∷ Cero contenido Gore, CP o acoso al privado.
-🌸 *𝑬𝒍 𝑶𝒓𝒅𝒆𝒏* ∷ Pedidos solo con ficha oficial y modales ("por favor" y "gracias").
-🌸 *𝑳𝒂 𝑱𝒐𝒅𝒂* ∷ Chat libre, memes y stickers (máximo 10).
+🌸 *𝑬𝒍 𝑴𝒖𝒓𝒐* ∷ Los enlaces externos están prohibidos.
+🌸 *𝑬𝒍 𝑹𝒆𝒔𝒑𝒆𝒕𝒐* ∷ Cero contenido Gore, CP o acoso.
+🌸 *𝑬𝒍 𝑶𝒓𝒅𝒆𝒏* ∷ Pedidos solo con ficha oficial.
+🌸 *𝑳𝒂 𝑱𝒐𝒅𝒂* ∷ Chat libre, memes y stickers.
 ━━━━━━━━━━━━━━━━━━━━
 
 📚 𝒁𝑶𝑵𝑨 𝑫𝑬 𝑨𝑷𝑶𝑹𝑻𝑬𝑺:
-https://chat.whatsapp.com/L1HeV4HcKJL2sC9YaA2z6m
+https://chat.whatsapp.com
 
-🍓 𝑵𝑶𝑻𝑨: 
-𝑳@𝒔 𝒂𝒅𝒎𝒊𝒏𝒊𝒔𝒕𝒓𝒂𝒅𝒐𝒓𝒆𝒔 𝒔𝒐𝒎𝒐𝒔 𝒍@𝒔 𝒖́𝒏𝒊𝒄@𝒔 𝒒𝒖𝒆 𝒂𝒑𝒐𝒓𝒕𝒂𝒎𝒐𝒔 𝒚 𝒂𝒄𝒕𝒖𝒂𝒍𝒊𝒛𝒂𝒎𝒐𝒔 𝑩𝑳/𝑮𝑳/𝑯𝑬𝑻.
-
-🫂 *Si tienes dudas, el equipo de Admins estamos para guiarte.*
+🫂 *Si tienes dudas, los Admins estamos para guiarte.*
 
 ˙ ˙ ˙ ˙ ˙ ˙ ˙ ˙ ˙ ˙ ˙ ˙ ˙ ˙ ˙ ˙ ˙ ˙ ˙ ˙ ˙ ˙ ˙ ˙ ˙ ˙
          ✨ ¡ 𝑫𝒊𝒔𝒇𝒓𝒖𝒕𝒂  𝒆𝒍  𝒑𝒂𝒓𝒂𝒊́𝒔𝒐 ! ✨`;
@@ -47,8 +40,7 @@ https://chat.whatsapp.com/L1HeV4HcKJL2sC9YaA2z6m
             mentions: [num],
           });
         }
-      } 
-      // El bloque de "remove" (despedida) está desactivado para evitar basura visual
+      }
     }
   } catch (err) {
     console.log("Error en Welcome:", err);

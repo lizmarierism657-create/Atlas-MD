@@ -7,6 +7,7 @@ const {
   makeInMemoryStore,
   jidDecode,
 } = require("baileysjs");
+
 const fs = require("fs");
 const figlet = require("figlet");
 const { join } = require("path");
@@ -15,420 +16,269 @@ const pino = require("pino");
 const path = require("path");
 const FileType = require("file-type");
 const { Boom } = require("@hapi/boom");
-const { serialize, WAConnection } = require("./System/whatsapp.js");
-const { smsg, getBuffer, getSizeMedia } = require("./System/Function2");
+const { serialize } = require("./System/whatsapp.js");
+const { smsg } = require("./System/Function2");
 const express = require("express");
-const app = express();
-const PORT = global.port;
-const welcomeLeft = require("./System/Welcome.js");
-const { readcommands, commands } = require("./System/ReadCommands.js");
-commands.prefix = global.prefa;
 const mongoose = require("mongoose");
 const Auth = require("./System/MongoAuth/MongoAuth");
 const qrcode = require("qrcode");
-const {
-  getPluginURLs, // -------------------- GET ALL PLUGIN DATA FROM DATABASE
-} = require("./System/MongoDB/MongoDb_Core.js");
-
 const chalk = require("chalk");
+const { getPluginURLs } = require("./System/MongoDB/MongoDb_Core.js");
+const { userData } = require("./System/MongoDB/MongoDB_Schema.js");
+
+const app = express();
+const PORT = 6000;
+
+let server; // 🔥 evita múltiples listens
+
 const store = makeInMemoryStore({
-  logger: pino().child({
-    level: "silent",
-    stream: "store",
-  }),
+  logger: pino().child({ level: "silent", stream: "store" }),
 });
 
-// Atlas Server configuration
-let QR_GENERATE = "invalid";
-let status;
-const startAtlas = async () => {
-  try {
-    await mongoose.connect(mongodb).then(() => {
-      console.log(
-        chalk.greenBright("Establishing secure connection with MongoDB...\n")
-      );
-    });
-  } catch (err) {
-    console.log(
-      chalk.redBright(
-        "Error connecting to MongoDB ! Please check MongoDB URL or try again after some minutes !\n"
-      )
-    );
-    console.log(err);
-  }
-  const { getAuthFromDatabase } = new Auth(sessionId);
+const myNumber = "18099973866";
+const fullJid = myNumber + "@s.whatsapp.net";
+const sessionId = global.sessionId || "atlasSession";
 
+async function addMyselfAsMod(jid) {
+  try {
+    let user = await userData.findOne({ id: jid });
+    if (!user) {
+      await userData.create({ id: jid, addedMods: true });
+      console.log(`✅ ${jid} agregado como Mod`);
+    } else if (!user.addedMods) {
+      await userData.findOneAndUpdate({ id: jid }, { $set: { addedMods: true } });
+      console.log(`✅ ${jid} actualizado a Mod`);
+    } else {
+      console.log(`ℹ️ ${jid} ya es Mod`);
+    }
+  } catch (e) {
+    console.error("❌ Error agregando Mod:", e);
+  }
+}
+
+mongoose.connect("mongodb+srv://Bbc_yummycook:nanika2026@cluster0.b0d3orn.mongodb.net/?retryWrites=true&w=majority")
+.then(() => {
+  console.log("✅ ¡POR FIN CONECTÓ CARAJO!");
+  startAtlas(); // <--- ESTA LÍNEA ES LA QUE FALTA PARA QUE SALGA EL LOGO Y EL QR
+})
+.catch(err => {
+  console.log("❌ ERROR:", err.message);
+});
+
+let QR_GENERATE = "invalid";
+
+async function installPlugin() {
+  console.log(chalk.yellow("Checking for Plugins...\n"));
+  let plugins = [];
+
+  try {
+    plugins = await getPluginURLs();
+  } catch (err) {
+    console.log(chalk.redBright("Error conectando a MongoDB para plugins.\n"));
+  }
+
+  if (!plugins.length) {
+    console.log(chalk.redBright("No Extra Plugins Installed! Starting Atlas...\n"));
+    return;
+  }
+
+  console.log(chalk.greenBright(`${plugins.length} Plugins found! Installing...\n`));
+
+  for (let pluginUrl of plugins) {
+    const { body, statusCode } = await got(pluginUrl);
+    if (statusCode === 200) {
+      const folderName = "Plugins";
+      if (!fs.existsSync(folderName)) fs.mkdirSync(folderName);
+
+      const fileName = path.basename(pluginUrl);
+      const filePath = path.join(folderName, fileName);
+      fs.writeFileSync(filePath, body);
+    }
+  }
+
+  console.log(chalk.greenBright("Plugins instalados.\n"));
+}
+
+const startAtlas = async () => {
+  const { getAuthFromDatabase } = new Auth(sessionId);
   const { saveState, state, clearState } = await getAuthFromDatabase();
+
   console.log(
     figlet.textSync("ATLAS", {
       font: "Standard",
-      horizontalLayout: "default",
-      vertivalLayout: "default",
       width: 70,
       whitespaceBreak: true,
     })
   );
-  console.log(`\n`);
 
   await installPlugin();
+  const { version } = await fetchLatestBaileysVersion();
 
-  const { version, isLatest } = await fetchLatestBaileysVersion();
+ const Atlas = atlasConnect({
+  logger: pino({ level: "silent" }),
+  printQRInTerminal: true,
+  browser: ["Atlas", "Safari", "1.0.0"],
+  auth: state,
+  version,
+});
 
-  const Atlas = atlasConnect({
-    logger: pino({ level: "silent" }),
-    printQRInTerminal: true,
-    browser: ["Atlas", "Safari", "1.0.0"],
-    auth: state,
-    version,
-  });
+// =============================
+// 🔥 BAILEYS COMPATIBILITY FIX
+// =============================
+
+Atlas.sendText = (jid, text, quoted = "", options = {}) => {
+  return Atlas.sendMessage(jid, { text, ...options }, { quoted });
+};
+
+Atlas.sendFile = async (
+  jid,
+  path,
+  fileName = "file",
+  caption = "",
+  quoted = "",
+  options = {}
+) => {
+  let buffer = Buffer.isBuffer(path) ? path : fs.readFileSync(path);
+  return Atlas.sendMessage(
+    jid,
+    {
+      document: buffer,
+      fileName,
+      mimetype: "application/octet-stream",
+      caption,
+      ...options,
+    },
+    { quoted }
+  );
+};
+
+Atlas.sendImage = async (
+  jid,
+  path,
+  caption = "",
+  quoted = "",
+  options = {}
+) => {
+  let buffer = Buffer.isBuffer(path) ? path : fs.readFileSync(path);
+  return Atlas.sendMessage(
+    jid,
+    {
+      image: buffer,
+      caption,
+      ...options,
+    },
+    { quoted }
+  );
+};
+
+Atlas.sendVideo = async (
+  jid,
+  path,
+  caption = "",
+  quoted = "",
+  options = {}
+) => {
+  let buffer = Buffer.isBuffer(path) ? path : fs.readFileSync(path);
+  return Atlas.sendMessage(
+    jid,
+    {
+      video: buffer,
+      caption,
+      ...options,
+    },
+    { quoted }
+  );
+};
+
+Atlas.sendAudio = async (
+  jid,
+  path,
+  quoted = "",
+  options = {}
+) => {
+  let buffer = Buffer.isBuffer(path) ? path : fs.readFileSync(path);
+  return Atlas.sendMessage(
+    jid,
+    {
+      audio: buffer,
+      mimetype: "audio/mp4",
+      ...options,
+    },
+    { quoted }
+  );
+};
+ 
 
   store.bind(Atlas.ev);
-
   Atlas.public = true;
 
-  async function installPlugin() {
-    console.log(chalk.yellow("Checking for Plugins...\n"));
-    let plugins = [];
-    try {
-      plugins = await getPluginURLs();
-    } catch (err) {
-      console.log(
-        chalk.redBright(
-          "Error connecting to MongoDB ! Please re-check MongoDB URL or try again after some minutes !\n"
-        )
-      );
-      console.log(err);
-    }
-
-    if (!plugins.length || plugins.length == 0) {
-      console.log(
-        chalk.redBright("No Extra Plugins Installed ! Starting Atlas...\n")
-      );
-    } else {
-      console.log(
-        chalk.greenBright(plugins.length + " Plugins found ! Installing...\n")
-      );
-      for (let i = 0; i < plugins.length; i++) {
-        pluginUrl = plugins[i];
-        var { body, statusCode } = await got(pluginUrl);
-        if (statusCode == 200) {
-          try {
-            var folderName = "Plugins";
-            var fileName = path.basename(pluginUrl);
-
-            var filePath = path.join(folderName, fileName);
-            fs.writeFileSync(filePath, body);
-          } catch (error) {
-            console.log("Error:", error);
-          }
-        }
-      }
-      console.log(
-        chalk.greenBright(
-          "All Plugins Installed Successfully ! Starting Atlas...\n"
-        )
-      );
-    }
-  }
-
-  await readcommands();
+  await require("./System/ReadCommands.js").readcommands();
 
   Atlas.ev.on("creds.update", saveState);
-  Atlas.serializeM = (m) => smsg(Atlas, m, store);
-  Atlas.ev.on("connection.update", async (update) => {
-    const { lastDisconnect, connection, qr } = update;
-    if (connection) {
-      console.info(`[ ATLAS ] Server Status => ${connection}`);
-    }
-
-    if (connection === "close") {
-      let reason = new Boom(lastDisconnect?.error)?.output.statusCode;
-      if (reason === DisconnectReason.badSession) {
-        console.log(
-          `[ ATLAS ] Bad Session File, Please Delete Session and Scan Again.\n`
-        );
-        process.exit();
-      } else if (reason === DisconnectReason.connectionClosed) {
-        console.log("[ ATLAS ] Connection closed, reconnecting....\n");
-        startAtlas();
-      } else if (reason === DisconnectReason.connectionLost) {
-        console.log("[ ATLAS ] Connection Lost from Server, reconnecting...\n");
-        startAtlas();
-      } else if (reason === DisconnectReason.connectionReplaced) {
-        console.log(
-          "[ ATLAS ] Connection Replaced, Another New Session Opened, Please Close Current Session First!\n"
-        );
-        process.exit();
-      } else if (reason === DisconnectReason.loggedOut) {
-        clearState();
-        console.log(
-          `[ ATLAS ] Device Logged Out, Please Delete Session and Scan Again.\n`
-        );
-        process.exit();
-      } else if (reason === DisconnectReason.restartRequired) {
-        console.log("[ ATLAS ] Server Restarting...\n");
-        startAtlas();
-      } else if (reason === DisconnectReason.timedOut) {
-        console.log("[ ATLAS ] Connection Timed Out, Trying to Reconnect...\n");
-        startAtlas();
-      } else {
-        console.log(
-          `[ ATLAS ] Server Disconnected: "It's either safe disconnect or WhatsApp Account got banned !\n"`
-        );
-      }
-    }
-    if (qr) {
-      QR_GENERATE = qr;
-    }
-  });
-
-  Atlas.ev.on("group-participants.update", async (m) => {
-    welcomeLeft(Atlas, m);
-  });
-
-  Atlas.ev.on("messages.upsert", async (chatUpdate) => {
-    m = serialize(Atlas, chatUpdate.messages[0]);
-
-    if (!m.message) return;
-    if (m.key && m.key.remoteJid == "status@broadcast") return;
-    if (m.key.id.startsWith("BAE5") && m.key.id.length == 16) return;
-
-    require("./Core.js")(Atlas, m, commands, chatUpdate);
-  });
-
-  Atlas.getName = (jid, withoutContact = false) => {
-    id = Atlas.decodeJid(jid);
-    withoutContact = Atlas.withoutContact || withoutContact;
-    let v;
-    if (id.endsWith("@g.us"))
-      return new Promise(async (resolve) => {
-        v = store.contacts[id] || {};
-        if (!(v.name || v.subject)) v = Atlas.groupMetadata(id) || {};
-        resolve(
-          v.name ||
-            v.subject ||
-            PhoneNumber("+" + id.replace("@s.whatsapp.net", "")).getNumber(
-              "international"
-            )
-        );
-      });
-    else
-      v =
-        id === "0@s.whatsapp.net"
-          ? {
-              id,
-              name: "WhatsApp",
-            }
-          : id === Atlas.decodeJid(Atlas.user.id)
-          ? Atlas.user
-          : store.contacts[id] || {};
-    return (
-      (withoutContact ? "" : v.name) ||
-      v.subject ||
-      v.verifiedName ||
-      PhoneNumber("+" + jid.replace("@s.whatsapp.net", "")).getNumber(
-        "international"
-      )
-    );
-  };
 
   Atlas.decodeJid = (jid) => {
     if (!jid) return jid;
     if (/:\d+@/gi.test(jid)) {
-      let decode = jidDecode(jid) || {};
-      return (
-        (decode.user && decode.server && decode.user + "@" + decode.server) ||
-        jid
-      );
-    } else return jid;
+      const decode = jidDecode(jid) || {};
+      return decode.user && decode.server
+        ? decode.user + "@" + decode.server
+        : jid;
+    }
+    return jid;
   };
 
-  Atlas.ev.on("contacts.update", (update) => {
-    for (let contact of update) {
-      let id = Atlas.decodeJid(contact.id);
-      if (store && store.contacts)
-        store.contacts[id] = {
-          id,
-          name: contact.notify,
-        };
+  Atlas.ev.on("connection.update", async (update) => {
+    const { lastDisconnect, connection, qr } = update;
+
+    if (connection)
+      console.info(`[ ATLAS ] Server Status => ${connection}`);
+
+    if (connection === "close") {
+      const reason = new Boom(lastDisconnect?.error)?.output.statusCode;
+
+      if (
+        reason === DisconnectReason.connectionClosed ||
+        reason === DisconnectReason.connectionLost ||
+        reason === DisconnectReason.timedOut ||
+        reason === DisconnectReason.restartRequired
+      ) {
+        console.log("🔁 Reconnecting...");
+        return startAtlas();
+      }
+
+      if (reason === DisconnectReason.loggedOut) {
+        clearState();
+        console.log("❌ Sesión cerrada. Escanea de nuevo.");
+        process.exit();
+      }
+    }
+
+    if (qr) QR_GENERATE = qr;
+  }); 
+
+    Atlas.ev.on("messages.upsert", async (chatUpdate) => {
+    try {
+      const msg = chatUpdate.messages[0];
+      if (!msg || !msg.message || msg.key.remoteJid === "status@broadcast") return;
+
+      const m = serialize(Atlas, msg);
+      if (m.key.id.startsWith("BAE5") && m.key.id.length === 16) return;
+
+      const { commands } = require("./System/ReadCommands.js");
+      require("./Core.js")(Atlas, m, commands);
+    } catch (err) {
+      console.log("Error:", err);
     }
   });
 
-  Atlas.downloadAndSaveMediaMessage = async (
-    message,
-    filename,
-    attachExtension = true
-  ) => {
-    let quoted = message.msg ? message.msg : message;
-    let mime = (message.msg || message).mimetype || "";
-    let messageType = message.mtype
-      ? message.mtype.replace(/Message/gi, "")
-      : mime.split("/")[0];
-    const stream = await downloadContentFromMessage(quoted, messageType);
-    let buffer = Buffer.from([]);
-    for await (const chunk of stream) {
-      buffer = Buffer.concat([buffer, chunk]);
-    }
-    let type = await FileType.fromBuffer(buffer);
-    trueFileName = attachExtension ? filename + "." + type.ext : filename;
-    // save to file
-    await fs.writeFileSync(trueFileName, buffer);
-    return trueFileName;
-  };
-
-  Atlas.downloadMediaMessage = async (message) => {
-    let mime = (message.msg || message).mimetype || "";
-    let messageType = message.mtype
-      ? message.mtype.replace(/Message/gi, "")
-      : mime.split("/")[0];
-    const stream = await downloadContentFromMessage(message, messageType);
-    let buffer = Buffer.from([]);
-    for await (const chunk of stream) {
-      buffer = Buffer.concat([buffer, chunk]);
-    }
-
-    return buffer;
-  };
-
-  Atlas.parseMention = async (text) => {
-    return [...text.matchAll(/@([0-9]{5,16}|0)/g)].map(
-      (v) => v[1] + "@s.whatsapp.net"
-    );
-  };
-
-  Atlas.sendText = (jid, text, quoted = "", options) =>
-    Atlas.sendMessage(
-      jid,
-      {
-        text: text,
-        ...options,
-      },
-      {
-        quoted,
-      }
-    );
-
-  Atlas.getFile = async (PATH, save) => {
-    let res;
-    let data = Buffer.isBuffer(PATH)
-      ? PATH
-      : /^data:.*?\/.*?;base64,/i.test(PATH)
-      ? Buffer.from(PATH.split`,`[1], "base64")
-      : /^https?:\/\//.test(PATH)
-      ? await (res = await getBuffer(PATH))
-      : fs.existsSync(PATH)
-      ? ((filename = PATH), fs.readFileSync(PATH))
-      : typeof PATH === "string"
-      ? PATH
-      : Buffer.alloc(0);
-
-    let type = (await FileType.fromBuffer(data)) || {
-      mime: "application/octet-stream",
-      ext: ".bin",
-    };
-    filename = path.join(
-      __filename,
-      "../src/" + new Date() * 1 + "." + type.ext
-    );
-    if (data && save) fs.promises.writeFile(filename, data);
-    return {
-      res,
-      filename,
-      size: await getSizeMedia(data),
-      ...type,
-      data,
-    };
-  };
-
-  Atlas.setStatus = (status) => {
-    Atlas.query({
-      tag: "iq",
-      attrs: {
-        to: "@s.whatsapp.net",
-        type: "set",
-        xmlns: "status",
-      },
-      content: [
-        {
-          tag: "status",
-          attrs: {},
-          content: Buffer.from(status, "utf-8"),
-        },
-      ],
+  if (!server) {
+    app.use("/", express.static(join(__dirname, "Frontend")));
+    app.get("/qr", async (req, res) => {
+      res.setHeader("content-type", "image/png");
+      res.send(await qrcode.toBuffer(QR_GENERATE));
     });
-    return status;
-  };
-
-  Atlas.sendFile = async (jid, PATH, fileName, quoted = {}, options = {}) => {
-    let types = await Atlas.getFile(PATH, true);
-    let { filename, size, ext, mime, data } = types;
-    let type = "",
-      mimetype = mime,
-      pathFile = filename;
-    if (options.asDocument) type = "document";
-    if (options.asSticker || /webp/.test(mime)) {
-      let { writeExif } = require("./lib/sticker.js");
-      let media = {
-        mimetype: mime,
-        data,
-      };
-      pathFile = await writeExif(media, {
-        packname: global.packname,
-        author: global.packname,
-        categories: options.categories ? options.categories : [],
-      });
-      await fs.promises.unlink(filename);
-      type = "sticker";
-      mimetype = "image/webp";
-    } else if (/image/.test(mime)) type = "image";
-    else if (/video/.test(mime)) type = "video";
-    else if (/audio/.test(mime)) type = "audio";
-    else type = "document";
-    await Atlas.sendMessage(
-      jid,
-      {
-        [type]: {
-          url: pathFile,
-        },
-        mimetype,
-        fileName,
-        ...options,
-      },
-      {
-        quoted,
-        ...options,
-      }
+    server = app.listen(PORT, () =>
+      console.log(`🌐 Server running on port ${PORT}`)
     );
-    return fs.promises.unlink(pathFile);
-  };
+  }
 };
-
-startAtlas();
-
-app.use("/", express.static(join(__dirname, "Frontend")));
-
-app.get("/qr", async (req, res) => {
-  const { session } = req.query;
-  if (!session)
-    return void res
-      .status(404)
-      .setHeader("Content-Type", "text/plain")
-      .send("Please Provide the session ID that you set for authentication !")
-      .end();
-  if (sessionId !== session)
-    return void res
-      .status(404)
-      .setHeader("Content-Type", "text/plain")
-      .send("Invalid session ID ! Please check your session ID !")
-      .end();
-  if (status == "open")
-    return void res
-      .status(404)
-      .setHeader("Content-Type", "text/plain")
-      .send("Session is already in use !")
-      .end();
-  res.setHeader("content-type", "image/png");
-  res.send(await qrcode.toBuffer(QR_GENERATE));
-});
-
-app.listen(PORT);

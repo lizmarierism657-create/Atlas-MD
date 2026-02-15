@@ -2,6 +2,7 @@ const fs = require("fs");
 const axios = require("axios");
 const path = require("path");
 const package = require("../package.json");
+
 let mergedCommands = [
   "help",
   "h",
@@ -22,7 +23,8 @@ module.exports = {
     m,
     { pushName, prefix, inputCMD, doReact, text, args }
   ) => {
-    const pic = fs.readFileSync("./Assets/Atlas.jpg");
+    const pic = fs.readFileSync("./Assets/Atlas.jpg"); // Puedes cambiar la imagen si quieres
+
     switch (inputCMD) {
       case "script":
       case "sc":
@@ -31,23 +33,23 @@ module.exports = {
           "https://api.github.com/repos/FantoX/Atlas-MD"
         );
         let repo = repoInfo.data;
-        console.log(repo);
-        let txt = `            🧣 *${botName}'s Script* 🧣\n\n*🎀 Total Forks:* ${
+
+        let txt = `🧣 *Nanika's Script* 🧣\n\n*🎀 Total Forks:* ${
           repo.forks_count
         }\n*⭐ Total Stars:* ${repo.stargazers_count}\n*📜 License:* ${
           repo.license.name
-        }\n*📁 Repo Size:* ${(repo.size / 1024).toFixed(
-          2
-        )} MB\n*📅 Last Updated:* ${repo.updated_at}\n\n*🔗 Repo Link:* ${
-          repo.html_url
-        }\n\n❝ Dont forget to give a Star ⭐ to the repo. It's made with restless hardwork by *Team ATLAS*. ❞\n\n*©️ Team ATLAS- 2023*`;
+        }\n*📁 Repo Size:* ${(repo.size / 1024).toFixed(2)} MB\n*📅 Last Updated:* ${
+          repo.updated_at
+        }\n\n*🔗 Repo Link:* ${repo.html_url}\n\n❝ No olvides dar una ⭐ al repo. Está hecho con esfuerzo por *Team ATLAS*. ❞`;
+
         Atlas.sendMessage(m.from, { image: pic, caption: txt }, { quoted: m });
         break;
 
       case "support":
       case "supportgc":
         await doReact("🔰");
-        let txt2 = `              🧣 *Support Group* 🧣\n\n*${botName}* is an open source project, and we are always happy to help you.\n\n*Link:* ${suppL}\n\n*Note:* Please don't spam in the group, and don't message *Admins directly* without permission. Ask for help inside *Group*.\n\n*Thanks for using Atlas.*`;
+        let txt2 = `🧣 *Support Group* 🧣\n\n*Nanika* está siempre disponible para ayudarte.  
+\n*Link:* ${suppL || "Sin link disponible"}\n\nNota: Por favor, no hagas spam en el grupo y no envíes mensajes directos a los admins sin permiso. Pregunta dentro del grupo.\n\nGracias por usar a Nanika.`;
         Atlas.sendMessage(m.from, { image: pic, caption: txt2 }, { quoted: m });
         break;
 
@@ -56,9 +58,9 @@ module.exports = {
       case "menu":
         await doReact("☃️");
         await Atlas.sendPresenceUpdate("composing", m.from);
+
         function readUniqueCommands(dirPath) {
           const allCommands = [];
-
           const files = fs.readdirSync(dirPath);
 
           for (const file of files) {
@@ -99,13 +101,15 @@ module.exports = {
         }
 
         const pluginsDir = path.join(process.cwd(), "Plugins");
-
         const allCommands = readUniqueCommands(pluginsDir);
         const formattedCommands = formatCommands(allCommands);
-        var helpText = `\nKonnichiwa *${pushName}* Senpai,\n\nI am *${botName}*, a WhatsApp bot built to take your boring WhatsApp experience into next level.\n\n*🔖 My Prefix is:*  ${prefix}\n\n${formattedCommands}\n\n\n*©️ Team ATLAS- 2023*`;
+
+        const helpText = `👋 Hola *${pushName}* baby,\n\nSoy *Nanika*, tu amiga de confianza en WhatsApp.  
+Estoy aquí para ayudarte a usar todos los comandos de manera fácil y rápida.\n\n*🔖 Mi prefijo es:* ${prefix}\n\n${formattedCommands}\n\n✨ Disfruta y pásalo bien conmigo 💕`;
+
         await Atlas.sendMessage(
           m.from,
-          { video: { url: botVideo }, gifPlayback: true, caption: helpText },
+          { text: helpText },
           { quoted: m }
         );
 
